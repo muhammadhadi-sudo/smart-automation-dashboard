@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import { relays } from "@/lib/data";
 import { showToast } from "./ToastContainer";
 import ToggleSwitch from "../ui/ToggleSwitch";
@@ -9,34 +8,27 @@ interface RelayPanelProps {
   panelOpen: boolean;
 }
 
-export default function RelayPanel({ panelOpen }: RelayPanelProps) {
+export default function RelayPanel({ panelOpen: _panelOpen }: RelayPanelProps) {
   const activeCount = relays.filter((r) => r.state).length;
 
-  const handleToggle = useCallback((id: string) => {
+  const handleToggle = (id: string) => {
     const r = relays.find((r) => r.id === id);
     if (!r) return;
     r.state = !r.state;
 
     /* Update visual 3D */
     if (typeof window !== "undefined") {
-      const fn = (window as unknown as Record<string, (id: string) => void>).__updateRelayVisual;
+      const fn = (
+        window as unknown as Record<string, (id: string) => void>
+      ).__updateRelayVisual;
       if (fn) fn(id);
     }
 
-    showToast(`${r.name} ${r.state ? "diaktifkan" : "dimatikan"}`, r.state ? "success" : "info");
-
-    /* Force re-render dengan event */
-    window.dispatchEvent(new CustomEvent("relay-updated"));
-  }, []);
-
-  /* Dengarkan perubahan relay dari 3D scene juga */
-  if (typeof window !== "undefined" && !window.__relayListenerAdded) {
-    window.__relayListenerAdded = true;
-    window.addEventListener("relay-updated", () => {
-      /* Trigger re-render via forceUpdate trick */
-      window.dispatchEvent(new Event("force-relay-render"));
-    });
-  }
+    showToast(
+      `${r.name} ${r.state ? "diaktifkan" : "dimatikan"}`,
+      r.state ? "success" : "info"
+    );
+  };
 
   return (
     <div className="p-4 border-b border-bdr">
@@ -69,7 +61,9 @@ export default function RelayPanel({ panelOpen }: RelayPanelProps) {
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-t1 truncate">{r.name}</div>
+              <div className="text-xs font-semibold text-t1 truncate">
+                {r.name}
+              </div>
               <div className="text-[10px] text-t2 truncate">{r.room}</div>
             </div>
             <ToggleSwitch id={r.id} isOn={r.state} onChange={handleToggle} />
@@ -78,11 +72,4 @@ export default function RelayPanel({ panelOpen }: RelayPanelProps) {
       </div>
     </div>
   );
-}
-
-/* Extend Window type */
-declare global {
-  interface Window {
-    __relayListenerAdded?: boolean;
-  }
 }

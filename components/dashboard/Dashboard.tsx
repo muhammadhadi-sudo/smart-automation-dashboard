@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { relays } from "@/lib/data";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import FloorplanScene from "./FloorplanScene";
@@ -9,32 +10,35 @@ import SensorPanel from "./SensorPanel";
 import ToastContainer, { showToast } from "./ToastContainer";
 
 export default function Dashboard() {
+  const [relayTick, setRelayTick] = useState(0);
   const [panelOpen, setPanelOpen] = useState(true);
 
   const handleRelayToggle = useCallback((id: string) => {
-    /* Toggle state di data */
-    const { relays } = require("@/lib/data");
-    const r = relays.find((r: { id: string }) => r.id === id);
+    const r = relays.find((r) => r.id === id);
     if (!r) return;
     r.state = !r.state;
 
-    /* Update visual 3D */
+    /* Update visual 3D marker */
     if (typeof window !== "undefined") {
-      const fn = (window as unknown as Record<string, (id: string) => void>).__updateRelayVisual;
+      const fn = (
+        window as unknown as Record<string, (id: string) => void>
+      ).__updateRelayVisual;
       if (fn) fn(id);
     }
 
-    showToast(`${r.name} ${r.state ? "diaktifkan" : "dimatikan"}`, r.state ? "success" : "info");
+    showToast(
+      `${r.name} ${r.state ? "diaktifkan" : "dimatikan"}`,
+      r.state ? "success" : "info"
+    );
 
-    /* Trigger re-render relay panel */
-    window.dispatchEvent(new CustomEvent("relay-updated"));
+    /* Force re-render relay panel */
+    setRelayTick((t) => t + 1);
   }, []);
 
-  const togglePanel = () => {
+  const togglePanel = useCallback(() => {
     setPanelOpen((prev) => !prev);
-    /* Resize Three.js setelah animasi CSS */
     setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
-  };
+  }, []);
 
   return (
     <>
@@ -54,8 +58,8 @@ export default function Dashboard() {
             </span>
           </div>
 
-          {/* Gunakan key untuk force re-render saat relay berubah */}
-          <RelayPanel key={`relay-${Date.now()}`} panelOpen={panelOpen} />
+          {/* key digunakan untuk force re-render saat relay berubah */}
+          <RelayPanel key={`relay-${relayTick}`} panelOpen={panelOpen} />
           <SensorPanel />
         </aside>
       </div>
